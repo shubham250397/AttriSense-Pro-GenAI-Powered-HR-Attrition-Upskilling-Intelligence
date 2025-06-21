@@ -260,7 +260,7 @@ banner_html = f"""
     align-items: center;
 '>
     <div style="flex: 1;">
-        <h1 style='margin:0;font-size:2.6rem;font-weight:900;color:#fff;'>AttriSense HR: Employee Attrition Risk & Management Portal</h1>
+        <h1 style='margin:0;font-size:2.0rem;font-weight:900;color:#fff;'>AttriSense HR: Employee Attrition Risk & Management Portal</h1>
         <p style='margin:.5rem 0 0;font-size:1.15rem;font-weight:600;color:#2ee0e0;display:flex;align-items:center;gap:0.5rem;'>
             <span style="font-size:1.5rem;vertical-align:middle;display:inline-block;margin-right:.5rem;">🤖</span>
             AI-driven risk analytics & career growth.
