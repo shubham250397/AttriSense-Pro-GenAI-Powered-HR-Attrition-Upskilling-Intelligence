@@ -21,7 +21,7 @@ header, #MainMenu, footer, [data-testid="stStatusWidget"] { display: none !impor
 html, body, .stApp, [data-testid="stAppViewContainer"] {margin-top: 0 !important; padding-top: 0 !important; background: #0e0f17 !important; color: #fff !important;}
 body {margin:0 !important;}
 .banner {background:linear-gradient(90deg,#3a267b,#512e89);padding:2rem 2rem 1.2rem 2rem;margin:0 0 1rem 0;border-radius:0 0 12px 12px;}
-.banner h1{margin:0;font-size:2.6rem;font-weight:900;}
+.banner h1{margin:0;font-size:1.5rem;font-weight:600;}
 .banner p{margin:.5rem 0 0;font-size:1.15rem;font-weight:600;color:#2ee0e0;display:flex;align-items:center;gap:0.5rem;}
 .section-header{font-size:1.3rem;font-weight:700;margin-top:.5rem;margin-bottom:.2rem;display:flex;align-items:center;gap:8px;}
 .stTabs [data-baseweb="tab-list"]{justify-content:center!important;}
@@ -323,6 +323,7 @@ with tab1:
     with r1:
         fig,ax = plt.subplots(figsize=(4,3))
         grp = filt.groupby("Department").Attrition.mean()*100
+        grp = grp.sort_values(ascending=False)
         ax.bar(grp.index, grp.values, color="#6f5cff")
         ax.set_facecolor("#181824"); ax.figure.patch.set_facecolor("#181824")
         ax.set_title("Attrition % by Department",fontsize=11,color="white")
@@ -337,6 +338,7 @@ with tab1:
     with r2:
         jobrole_counts = filt['JobRole'].value_counts().nlargest(10).index
         grp = filt[filt['JobRole'].isin(jobrole_counts)].groupby("JobRole").Attrition.mean()*100
+        grp = grp.sort_values(ascending=False)
         fig,ax = plt.subplots(figsize=(4,3))
         ax.bar(grp.index, grp.values, color="#6f5cff")
         ax.set_facecolor("#181824"); fig.patch.set_facecolor("#181824")
@@ -353,6 +355,7 @@ with tab1:
     r3, r4 = st.columns(2)
     with r3:
         grp = filt.groupby("Department").CoursesCompleted.mean()
+        grp = grp.sort_values(ascending=False)
         fig,ax = plt.subplots(figsize=(4,3))
         ax.bar(grp.index,grp.values,color="#FFD700")
         ax.set_facecolor("#181824"); fig.patch.set_facecolor("#181824")
@@ -367,6 +370,7 @@ with tab1:
         st.pyplot(fig)
     with r4:
         grp = filt.Gender.value_counts()
+        grp = grp.sort_values(ascending=False)
         fig,ax = plt.subplots(figsize=(4,3))
         ax.bar(grp.index,grp.values,color="#FFD700")
         ax.set_facecolor("#181824"); fig.patch.set_facecolor("#181824")
