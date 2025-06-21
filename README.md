@@ -7,7 +7,7 @@ A modern Streamlit solution for HR teams to analyze employee attrition risk, ide
 
 ## 🚀 Live Demo
 
-[**App Link**](https://your-streamlit-cloud-link)  
+[**App Link**](https://attrisense-pro-genai-powered-hr-attrition-management.streamlit.app)  
 *Replace this with your Streamlit Cloud URL after deployment.*
 
 ---
