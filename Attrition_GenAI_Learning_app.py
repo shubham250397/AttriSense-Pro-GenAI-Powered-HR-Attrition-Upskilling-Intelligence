@@ -9,7 +9,7 @@ from sklearn.preprocessing import LabelEncoder, StandardScaler
 import google.generativeai as genai
 
 # ==== STREAMLIT CONFIG & STYLE ====
-st.set_page_config(page_title="HR Attrition Risk & Upskilling Portal", layout="wide")
+st.set_page_config(page_title="AttriSense HR: Employee Attrition Risk & Management Portal", layout="wide")
 
 
 
@@ -276,7 +276,7 @@ banner_html = f"""
     align-items: center;
 '>
     <div style="flex: 1;">
-        <h1 style='margin:0;font-size:2.6rem;font-weight:900;color:#fff;'>HR Attrition Risk & Upskilling Portal</h1>
+        <h1 style='margin:0;font-size:2.6rem;font-weight:900;color:#fff;'>AttriSense HR: Employee Attrition Risk & Management Portal</h1>
         <p style='margin:.5rem 0 0;font-size:1.15rem;font-weight:600;color:#2ee0e0;display:flex;align-items:center;gap:0.5rem;'>
             <span style="font-size:1.5rem;vertical-align:middle;display:inline-block;margin-right:.5rem;">🤖</span>
             AI-driven risk analytics & career growth.
@@ -300,7 +300,7 @@ st.markdown(banner_html, unsafe_allow_html=True)
 
 
 # st.markdown(
-#     '<div class="banner"><h1>HR Attrition Risk & Upskilling Portal</h1>'
+#     '<div class="banner"><h1>AttriSense HR: Employee Attrition Risk & Management Portal
 #     '<p> <span class="icon">🤖</span> AI-driven risk analytics & career growth. </p></div>',
 #     unsafe_allow_html=True
 # )
