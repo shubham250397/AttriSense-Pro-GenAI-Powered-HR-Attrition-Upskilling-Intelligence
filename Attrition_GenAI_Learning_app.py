@@ -7,32 +7,17 @@ from xgboost import XGBClassifier
 from lifelines import CoxPHFitter
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 import google.generativeai as genai
+import base64
 
 # ==== STREAMLIT CONFIG & STYLE ====
 st.set_page_config(page_title="AttriSense HR: Employee Attrition Risk & Management Portal", layout="wide")
 
-
-
 st.markdown("""
 <style>
-/* Remove all body and main padding/margin */
-body, .main, .stApp {
-    padding-top: 0 !important;
-    margin-top: 0 !important;
-    background: #0e0f17 !important;
-}
-section.main > div:first-child {
-    padding-top: 0 !important;
-    margin-top: 0 !important;
-}
-header, #MainMenu, footer, [data-testid="stStatusWidget"] {
-    display: none !important;
-}
-/* Remove default Streamlit runner bar (top deploy bar) */
-.stDeployButton, .stDeployButton__content, [data-testid="stHeader"], [data-testid="stToolbar"] {
-    display: none !important;
-}
-section.main > div:first-child, .stDeployButton, #MainMenu, header, footer, [data-testid="stStatusWidget"] {display: none !important;}
+body, .main, .stApp { padding-top: 0 !important; margin-top: 0 !important; background: #0e0f17 !important;}
+section.main > div:first-child { padding-top: 0 !important; margin-top: 0 !important;}
+header, #MainMenu, footer, [data-testid="stStatusWidget"] { display: none !important;}
+.stDeployButton, .stDeployButton__content, [data-testid="stHeader"], [data-testid="stToolbar"] { display: none !important;}
 html, body, .stApp, [data-testid="stAppViewContainer"] {margin-top: 0 !important; padding-top: 0 !important; background: #0e0f17 !important; color: #fff !important;}
 body {margin:0 !important;}
 .banner {background:linear-gradient(90deg,#3a267b,#512e89);padding:2rem 2rem 1.2rem 2rem;margin:0 0 1rem 0;border-radius:0 0 12px 12px;}
@@ -46,9 +31,7 @@ body {margin:0 !important;}
 .metric{flex:1;background:#181824;padding:1rem;border-radius:8px;text-align:center;}
 .metric .val{font-size:1.8rem;font-weight:700;color:#b794f4;}
 .metric .lab{font-size:1rem;color:#aaa;}
-.stSelectbox,.stSlider,.stTextInput,.stButton>button {
-  background:#1e1932!important;color:#fff!important;border:1px solid #2ee0e0!important;
-}
+.stSelectbox,.stSlider,.stTextInput,.stButton>button {background:#1e1932!important;color:#fff!important;border:1px solid #2ee0e0!important;}
 .stSelectbox label,.stSlider label,.stTextInput label {color:#fff!important;}
 .stDataFrame table{background:#181824;color:#fff;}
 .stDataFrame th,.stDataFrame td{padding:.3rem .6rem;font-size:.9rem;}
@@ -59,9 +42,7 @@ body {margin:0 !important;}
 .stSpinner > div{color:#2ee0e0!important;}
 .icon {font-size:1.5rem;vertical-align:middle;display:inline-block;margin-right:.5rem;}
 .descbox {background:#102634;border-left:6px solid #2ee0e0;padding:.8rem 1rem .8rem 1.5rem;margin-bottom:1rem;border-radius:8px;display:flex;align-items:center;gap:12px;font-size:1.05rem;color:#b7edfa;}
-/* Make AI plan go full width */
 #plan_md {width:100vw !important; max-width:90vw;}
-/* White radio buttons */
 [data-baseweb="radio"] label {color: #fff !important;}
 </style>
 """, unsafe_allow_html=True)
@@ -133,10 +114,16 @@ dummy_template = pd.get_dummies(df[cat_cols], drop_first=True)
 all_dummy_cols = list(dummy_template.columns)
 
 # ==== MODEL TRAINING ====
-xgb_model = XGBClassifier(n_estimators=80, random_state=2, use_label_encoder=False, eval_metric="logloss")
-xgb_model.fit(df_enc[features], df_enc.Attrition)
+@st.cache_resource
+def train_xgb(X, y):
+    model = XGBClassifier(n_estimators=80, random_state=2, use_label_encoder=False, eval_metric="logloss")
+    model.fit(X, y)
+    return model
+
+xgb_model = train_xgb(df_enc[features], df_enc.Attrition)
 df["RiskScore"] = xgb_model.predict_proba(df_enc[features])[:,1]
 
+# CoxPH model (not cached, for speed and no hash error)
 role_encoder = LabelEncoder().fit(df.JobRole)
 cox_df = df.copy()
 cox_df["JobRoleCode"] = role_encoder.transform(cox_df.JobRole)
@@ -147,14 +134,12 @@ cph = CoxPHFitter().fit(
 )
 
 # ==== GLOBAL FEATURE IMPORTANCE ====
-def get_top_features(X, y, feature_names, topn=6):
-    model = XGBClassifier(n_estimators=60, random_state=42, use_label_encoder=False, eval_metric="logloss")
-    model.fit(X, y)
-    importances = model.feature_importances_
+def get_top_features(xgb_model, features, topn=7):
+    importances = xgb_model.feature_importances_
     idxs = np.argsort(importances)[::-1][:topn]
-    return [(feature_names[i], round(float(importances[i]),3)) for i in idxs]
+    return [(features[i], round(float(importances[i]),3)) for i in idxs]
 
-global_feature_importance = get_top_features(df_enc[features], df_enc.Attrition, features, 7)
+global_feature_importance = get_top_features(xgb_model, features, 7)
 
 def get_cohort_features(df_sub, topn=5):
     X = pd.get_dummies(df_sub[cat_cols], drop_first=True)
@@ -254,7 +239,6 @@ def gen_plan(profile, aspiration, gaps, weeks, refine=""):
     return resp.text
 
 # ==== UI: HEADER ====
-import base64
 def get_image_base64(img_path):
     with open(img_path, "rb") as img_file:
         img_bytes = img_file.read()
@@ -294,16 +278,7 @@ banner_html = f"""
     " alt="Brand Icon" />
 </div>
 """
-
 st.markdown(banner_html, unsafe_allow_html=True)
-
-
-
-# st.markdown(
-#     '<div class="banner"><h1>AttriSense HR: Employee Attrition Risk & Management Portal
-#     '<p> <span class="icon">🤖</span> AI-driven risk analytics & career growth. </p></div>',
-#     unsafe_allow_html=True
-# )
 
 tab1, tab2, tab3 = st.tabs([
     "📊Dashboard & KPIs", "🧑‍💼Employee Finder", "🚀Upskilling Assistant"
@@ -410,7 +385,6 @@ with tab1:
     from collections import defaultdict
     
     def get_parent_feature(col):
-        # e.g., 'JobRole_Software Engineer' --> 'JobRole'
         if '_' in col:
             return col.split('_')[0]
         else:
@@ -425,27 +399,19 @@ with tab1:
         return sorted(agg.items(), key=lambda x: -x[1])
     
     agg_imp = compute_aggregated_importances(xgb_model, features)
-    agg_imp_top = agg_imp[:10]  # Show top 10 only
+    agg_imp_top = agg_imp[:10]
     
-    #st.markdown('<span class="section-header">🏅 Top-10 Feature Importances (Global/Parent)</span>', unsafe_allow_html=True)
     labels = [f for f, v in agg_imp_top][::-1]
     values = [v*100 for f, v in agg_imp_top][::-1]
     
-    # Use a blue-cyan gradient for bars (no gold/yellow)
-    cmap = plt.cm.Blues  # try 'cividis' or 'viridis' if you want
+    cmap = plt.cm.Blues
     norm = mcolors.Normalize(vmin=min(values), vmax=max(values))
     colors = [cmap(norm(v)) for v in values]
     
     fig, ax = plt.subplots(figsize=(6, 3.5))
     bars = ax.barh(labels, values, color=colors)
-    
-    # Data labels: white, bold, right after each bar
     for bar, val in zip(bars, values):
-        ax.text(
-            bar.get_width() + 1, bar.get_y() + bar.get_height()/2,
-            f"{val:.1f}%", va="center", ha="left", fontsize=6, color="white", fontweight="bold"
-        )
-    
+        ax.text(bar.get_width() + 1, bar.get_y() + bar.get_height()/2, f"{val:.1f}%", va="center", ha="left", fontsize=6, color="white", fontweight="bold")
     ax.set_facecolor("#181824")
     fig.patch.set_facecolor("#181824")
     ax.set_xlabel("Importance %", color="white", fontsize=9)
@@ -455,18 +421,6 @@ with tab1:
     plt.tight_layout()
     st.pyplot(fig)
    
-    # fi = xgb_model.feature_importances_
-    # idx10 = np.argsort(fi)[-10:][::-1]
-    # fig,ax = plt.subplots(figsize=(6,3))
-    # ax.barh([features[i] for i in idx10][::-1], fi[idx10][::-1]*100, color="#FFD700")
-    # ax.set_facecolor("#181824"); fig.patch.set_facecolor("#181824")
-    # ax.set_xlabel("Importance %",color="white",fontsize=8)
-    # ax.tick_params(axis='y', colors="white",labelsize=8)
-    # ax.tick_params(axis='x', colors="white",labelsize=8)
-    # for s in ax.spines.values(): s.set_color("white")
-    # st.pyplot(fig)
-
-    #st.markdown('<span class="section-header">🏢 Department Efficiency</span>', unsafe_allow_html=True)
     tbl = dept_tbl[["Emps","Leavers","Attr%"]].rename(columns={"Attr%":"Attrition%"})
     tbl["Retention%"] = 1 - tbl["Attrition%"]
     st.dataframe(tbl.style.format({"Attrition%":"{:.1%}","Retention%":"{:.1%}"}),height=220)
